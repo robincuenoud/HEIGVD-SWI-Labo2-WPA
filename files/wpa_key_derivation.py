@@ -23,7 +23,7 @@ from pbkdf2 import *
 from numpy import array_split
 from numpy import array
 import hmac, hashlib
-
+import os 
 def customPRF512(key,A,B):
     """
     This function calculates the key expansion from the 256 bit PMK to the 512 bit PTK
@@ -37,8 +37,34 @@ def customPRF512(key,A,B):
         R = R+hmacsha1.digest()
     return R[:blen]
 
+
+
+
 # Read capture file -- it contains beacon, authentication, associacion, handshake and data
-wpa=rdpcap("wpa_handshake.cap") 
+wpa=rdpcap("files/wpa_handshake.cap") 
+
+ 
+handshake = []
+
+for frame in wpa:
+    # first get ssid name and mac
+    # find beacon frame (type 0 (management) , subtype 8 (Beacon))
+    if frame.type == 0 and frame.subtype == 8:  
+        ssid = frame.info.decode("utf-8")
+        APmac = a2b_hex(frame.addr2.replace(':',''))
+    # find authentication frame (type 0 ,subtype 11 )
+    if frame.type == 0 and frame.subtype == 11 and a2b_hex(frame.addr2.replace(':', '')) == APmac :
+            # get client mac 
+            Clientmac = a2b_hex(frame.addr1.replace(':', ''))  
+    # 4-way handshake type are Data and QoS Data (t2 subt0 and t2 and subt8)
+    # todo ? check that only concerned AP, client frame ? 
+    if frame.type == 2 and (frame.subtype == 0 or frame.type == 8):
+        handshake.append(frame)
+        
+
+        
+
+# - test
 
 # Important parameters for key derivation - most of them can be obtained from the pcap file
 passPhrase  = "actuelle"
